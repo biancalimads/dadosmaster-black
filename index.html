@@ -9415,13 +9415,68 @@ html.fx-on{overflow-x:hidden}
   // cada trecho na posição medida pelo navegador → números e "%" saíam deslocados no PNG.
   // No clone: dígitos proporcionais (medida da tela = medida do canvas) e toda célula
   // numérica alinhada da DIREITA para a esquerda, com o cabeçalho da coluna acompanhando.
+  // Números com o mesmo nº de caracteres alinhados como na tela (tabular-nums).
+  // O html2canvas ignora tabular-nums, então no clone cada dígito vira uma caixa de largura fixa
+  // (a largura do dígito mais largo daquela fonte) — resultado igual ao da visualização.
+  function _fxTabularDigits(doc,cel){
+    var root=cel||doc,win=doc.defaultView,cv=doc.createElement('canvas').getContext('2d'),cache={};
+    function digitW(cs){
+      var f=cs.fontStyle+' '+cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;
+      if(cache[f])return cache[f];
+      // mede a largura real do dígito tabular no navegador (igual à tela)
+      var sp=doc.createElement('span');
+      sp.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;letter-spacing:0;font-variant-numeric:tabular-nums;font:'+f;
+      sp.style.fontVariantNumeric='tabular-nums';
+      sp.textContent='0123456789012345678901234567890123456789';
+      (doc.body||doc.documentElement).appendChild(sp);
+      var w=sp.getBoundingClientRect().width/40;sp.parentNode.removeChild(sp);
+      if(!(w>0)){cv.font=f;w=0;for(var d=0;d<10;d++)w=Math.max(w,cv.measureText(String(d)).width);}
+      return cache[f]=Math.round(w*100)/100;
+    }
+    var cells=root.querySelectorAll('table td, table th');
+    for(var i=0;i<cells.length;i++){
+      var c=cells[i];
+      if(!/\d/.test(c.textContent||''))continue;
+      var tw=doc.createTreeWalker(c,4,null),nodes=[],n;
+      while((n=tw.nextNode()))if(/\d/.test(n.nodeValue))nodes.push(n);
+      nodes.forEach(function(tn){
+        var p=tn.parentNode;if(!p)return;
+        var cs=win.getComputedStyle(p);
+        if(String(cs.fontVariantNumeric||'').indexOf('tabular')<0)return; // só onde a tela usa dígitos fixos
+        // um único invólucro: se o pai for flex/grid com gap, os pedaços não se separam
+        var mm=/^(\s*)([\s\S]*?)(\s*)$/.exec(tn.nodeValue),core=mm[2];
+        var w=digitW(cs),frag=doc.createElement('span');
+        frag.style.cssText='display:inline-block;white-space:nowrap';
+        core.split(/(\d)/).forEach(function(part){
+          if(!part)return;
+          if(/^\d$/.test(part)){
+            var sp=doc.createElement('span');sp.textContent=part;
+            sp.style.cssText='display:inline-block;width:'+w+'px;text-align:center;font-variant-numeric:normal;letter-spacing:0';
+            frag.appendChild(sp);
+          }else frag.appendChild(doc.createTextNode(part));
+        });
+        var out=doc.createDocumentFragment();
+        if(mm[1])out.appendChild(doc.createTextNode(mm[1]));
+        out.appendChild(frag);
+        if(mm[3])out.appendChild(doc.createTextNode(mm[3]));
+        p.replaceChild(out,tn);
+      });
+    }
+  }
   function _fxAlignClone(doc,cel){
     var root=cel||doc;
     var st=doc.createElement('style');
-    st.textContent='table,table *{font-variant-numeric:normal!important;font-feature-settings:normal!important;letter-spacing:normal!important}';
+    // Só as tabelas MAIORES MARCAS (#tR nas categorias e #tRCM em Motorizadas); as demais exportam como antes.
+    var MM='#tR,#tR *,#tRCM,#tRCM *';
+    st.textContent='';
+    // padrão de alinhamento da MAIORES MARCAS no PNG: valores e rótulos encostados à direita com respiro curto,
+    // ícone de ordenação no fim do rótulo; coluna ANT. com rótulo à esquerda e ícone à direita.
+    st.textContent+='#tR thead th,#tR tbody td,#tRCM thead th,#tRCM tbody td{padding-right:12px!important}'
+      +'#tR thead th[data-col="5"]{text-align:left!important}'
+      +'#tR thead th[data-col="5"] .th-label{display:inline-block!important;min-width:0!important;width:calc(100% - 22px)!important;text-align:left!important}';
     (doc.head||doc.documentElement).appendChild(st);
     var NUM=/^[▲▼↑↓+\-−–—]?\s*(R\$|US\$)?\s*[▲▼+\-−]?\s*\d[\d.,]*\s*(%|pp|p\.p\.|pç|pts?|x|º|°)?\s*[▲▼↑↓]?$|^[—–-]$/;
-    root.querySelectorAll('table').forEach(function(tb){
+    root.querySelectorAll('table#tR,table#tRCM').forEach(function(tb){
       var numCol={};
       // colunas de posição (#) ficam como estão
       var skip={};
@@ -9451,7 +9506,7 @@ html.fx-on{overflow-x:hidden}
       var ci=0;
       Array.prototype.forEach.call(hr[hr.length-1].children,function(th){
         var span=parseInt(th.getAttribute('colspan')||'1',10)||1;
-        if(span===1&&numCol[ci]){
+        if(span===1&&numCol[ci]&&!(tb.id==='tR'&&th.getAttribute('data-col')==='5')){
           th.style.setProperty('text-align','right','important');
           Array.prototype.forEach.call(th.querySelectorAll('*'),function(ch){
             var d=doc.defaultView.getComputedStyle(ch);
@@ -9494,7 +9549,8 @@ html.fx-on{overflow-x:hidden}
       var userClone=opts.onclone;
       opts.onclone=function(doc,cel){
         try{
-          if(cel&&W&&cel.style){
+          // MAIORES MARCAS tem recorte próprio até a largura da tabela (colunas ocultas) — não travar
+          if(cel&&W&&cel.style&&!(cel.querySelector&&cel.querySelector('#tR,#tRCM'))){
             cel.style.setProperty('width',W+'px','important');
             cel.style.setProperty('min-width',W+'px','important');
             cel.style.setProperty('max-width',W+'px','important');
@@ -9503,6 +9559,7 @@ html.fx-on{overflow-x:hidden}
           }
         }catch(e){}
         try{_fxAlignClone(doc,cel);}catch(e){}
+        try{_fxTabularDigits(doc,cel);}catch(e){}
         return userClone?userClone.apply(this,arguments):undefined;
       };
       var p;

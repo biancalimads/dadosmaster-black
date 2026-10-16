@@ -2471,6 +2471,12 @@ body.theme-light .plc-reading-table .pr-dn{color:#ef4444!important;font-weight:7
 body.theme-light .placar-modal .plc-reading-table thead th,body.theme-light .placar-modal .plc-reading-table thead th:first-child,body.theme-light .placar-modal .plc-reading-table thead th:last-child{text-align:center!important;vertical-align:middle!important}
 body .placar-modal .plc-head>div,body.theme-light .placar-modal .plc-head>div,body .placar-modal .plc-head>.plc-name,body.theme-light .placar-modal .plc-head>.plc-name{font-size:8.5px!important;font-weight:700!important;letter-spacing:.6px!important;height:auto!important;align-items:center!important;align-self:stretch!important;line-height:1.15!important}
 </style>
+<style id="thCenterAll">
+/* TODOS os cabeçalhos de tabela centralizados */
+table thead th:not(#_z):not(#_y),table thead th:not(#_z):not(#_y):first-child,table thead th:not(#_z):not(#_y):last-child{text-align:center!important}
+table thead th:not(#_z)>div,table thead th:not(#_z)>span[style*="flex"],table thead th:not(#_z) .th-in{justify-content:center!important;text-align:center!important}
+.placar-modal .plc-head>div:not(#_z){justify-content:center!important;text-align:center!important}
+</style>
 </head>
 <body class="theme-dark">
 <!-- Theme Toggle Bar -->
@@ -9623,8 +9629,7 @@ html.fx-on{overflow-x:hidden}
     // padrão de alinhamento da MAIORES MARCAS no PNG: valores e rótulos encostados à direita com respiro curto,
     // ícone de ordenação no fim do rótulo; coluna ANT. com rótulo à esquerda e ícone à direita.
     st.textContent+='#tR thead th,#tR tbody td,#tRCM thead th,#tRCM tbody td{padding-right:12px!important}'
-      +'#tR thead th[data-col="5"]{text-align:left!important}'
-      +'#tR thead th[data-col="5"] .th-label{display:inline-block!important;min-width:0!important;width:calc(100% - 22px)!important;text-align:left!important}';
+      +'#tR thead th,#tRCM thead th{text-align:center!important}';
     (doc.head||doc.documentElement).appendChild(st);
     var NUM=/^[▲▼↑↓+\-−–—]?\s*(R\$|US\$)?\s*[▲▼+\-−]?\s*\d[\d.,]*\s*(%|pp|p\.p\.|pç|pts?|x|º|°)?\s*[▲▼↑↓]?$|^[—–-]$/;
     root.querySelectorAll('table#tR,table#tRCM').forEach(function(tb){
@@ -9658,11 +9663,7 @@ html.fx-on{overflow-x:hidden}
       Array.prototype.forEach.call(hr[hr.length-1].children,function(th){
         var span=parseInt(th.getAttribute('colspan')||'1',10)||1;
         if(span===1&&numCol[ci]&&!(tb.id==='tR'&&th.getAttribute('data-col')==='5')){
-          th.style.setProperty('text-align','right','important');
-          Array.prototype.forEach.call(th.querySelectorAll('*'),function(ch){
-            var d=doc.defaultView.getComputedStyle(ch);
-            if(d.display.indexOf('flex')>=0)ch.style.setProperty('justify-content','flex-end','important');
-          });
+          th.style.setProperty('text-align','center','important');
         }
         ci+=span;
       });

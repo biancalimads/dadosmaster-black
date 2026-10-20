@@ -4047,6 +4047,23 @@ function rebuildMotor(wb){
           const IT=MOTOR_ADS.items||{},VD=MOTOR_ADS.vend||{},IMG=MOTOR_ADS.img||{};
           Object.keys(IT).forEach(m=>{Object.keys(IT[m]||{}).forEach(t=>{const o=IT[m][t]||{};replaceYMs.forEach(ym=>delete o[String(ym)]);if(!Object.keys(o).length)delete IT[m][t]});if(!Object.keys(IT[m]||{}).length)delete IT[m]});
           Object.keys(VD).forEach(t=>{const o=VD[t]||{};replaceYMs.forEach(ym=>delete o[String(ym)]);if(!Object.keys(o).length)delete VD[t]});
+          // Nome do vendedor nos meses congelados da MOTORIZADA (valores intactos, só correspondência exata).
+          try{
+            if(kVend){
+              const fz=uploadYMs.filter(ym=>!replaceYMs.has(ym));
+              fz.forEach(ym=>{
+                const yk=String(ym),F=new Map(),U=new Map();
+                Object.keys(VD).forEach(t=>{const o=VD[t]&&VD[t][yk];if(!o)return;Object.entries(o).forEach(([ve,v])=>{if(!F.has(ve))F.set(ve,new Map());const m=F.get(ve);m.set(t,[(m.get(t)||[0,0])[0]+v,0])})});
+                if(!F.size)return;
+                mz.forEach(row=>{const d=parseD(row[kData]);if(!d||d.ym!==ym)return;const title=String(row[kTit]||'').trim();const ve=String(row[kVend]||'').trim();if(!title||title==='-'||!ve||ve==='-')return;const v=numV(row[kVal]);if(!U.has(ve))U.set(ve,new Map());const m=U.get(ve);const x=m.get(title);if(x)x[0]+=v;else m.set(title,[v,0])});
+                const r=_vendRelabelMatch(F,U);
+                if(!r.map.size)return;
+                Object.keys(VD).forEach(t=>{const o=VD[t]&&VD[t][yk];if(!o)return;const n={};Object.entries(o).forEach(([ve,v])=>{const nv=r.map.get(ve)||ve;n[nv]=(n[nv]||0)+v});VD[t][yk]=n});
+                r.map.forEach((x,y)=>_vrUploadLog.push(['MOTORIZADAS',ym,y,x]));
+                console.log('[rebuildMotor] vendedores renomeados em '+ym+':',[...r.map].map(p=>p[0]+' → '+p[1]));
+              });
+            }
+          }catch(_e){console.warn('[rebuildMotor] renomeação de vendedores:',_e)}
           mz.forEach(row=>{
             const d=parseD(row[kData]);if(!d||!replaceYMs.has(d.ym))return;const ym=String(d.ym);
             const marca=String(row[kMarca]||'').trim();if(!marca||marca==='-')return;
@@ -7794,6 +7811,74 @@ async function onUpload(e){
   }
 }
 
+// ===== VENDEDOR RENOMEADO EM MESES CONGELADOS =====
+// Os VALORES dos meses congelados nunca mudam. Só o NOME do vendedor é atualizado, e apenas quando
+// a correspondência é exata: no mesmo mês, o vendedor antigo sumiu do arquivo e o nome novo traz
+// EXATAMENTE as mesmas linhas (marca, categorias, anúncio, valor e peças). Qualquer dúvida = não renomeia.
+function _vrAdd(M,ym,vd,k,v,p){let a=M.get(ym);if(!a){a=new Map();M.set(ym,a)}let b=a.get(vd);if(!b){b=new Map();a.set(vd,b)}const x=b.get(k);if(x){x[0]+=v;x[1]+=p}else b.set(k,[+v||0,+p||0])}
+function _vrTol(x){return Math.max(0.02,Math.abs(x)*1e-7)}
+function _vrEq(a,b){if(!a||!b||a.size!==b.size)return false;for(const [k,x] of a){const y=b.get(k);if(!y)return false;if(Math.abs(x[0]-y[0])>_vrTol(x[0])||Math.abs(x[1]-y[1])>0.5)return false}return true}
+function _vendRelabelMatch(F,U){
+  const out=new Map();
+  const gone=[...F.keys()].filter(v=>!U.has(v));
+  if(!gone.length)return {map:out,gone:[]};
+  const D=new Map();
+  U.forEach((ux,x)=>{
+    const fx=F.get(x);
+    if(fx&&_vrEq(fx,ux))return;
+    const d=new Map();let bad=false;
+    ux.forEach((val,k)=>{const f=fx&&fx.get(k);const dv=val[0]-(f?f[0]:0),dp=val[1]-(f?f[1]:0);
+      if(dv<-_vrTol(val[0])||dp<-0.5){bad=true;return}
+      if(Math.abs(dv)>_vrTol(val[0])||Math.abs(dp)>0.5)d.set(k,[dv,dp])});
+    if(fx)fx.forEach((val,k)=>{if(!ux.has(k))bad=true});
+    if(!bad&&d.size)D.set(x,d);
+  });
+  const fits=(y,d)=>{for(const [k,fy] of F.get(y)){const dd=d.get(k);if(!dd||fy[0]>dd[0]+_vrTol(dd[0])||fy[1]>dd[1]+0.5)return false}return true};
+  const claimed=new Map(),plan=new Map();
+  D.forEach((d,x)=>{
+    const cands=gone.filter(y=>fits(y,d));
+    if(!cands.length)return;
+    let chosen=null;
+    const exact=cands.filter(y=>_vrEq(F.get(y),d));
+    if(exact.length===1)chosen=exact;
+    else if(exact.length===0){
+      const S=new Map();cands.forEach(y=>F.get(y).forEach((fy,k)=>{const s=S.get(k)||[0,0];S.set(k,[s[0]+fy[0],s[1]+fy[1]])}));
+      if(_vrEq(S,d))chosen=cands;
+    }
+    if(!chosen)return;
+    plan.set(x,chosen);chosen.forEach(y=>{if(!claimed.has(y))claimed.set(y,[]);claimed.get(y).push(x)});
+  });
+  const badX=new Set();claimed.forEach(xs=>{if(xs.length>1)xs.forEach(x=>badX.add(x))});
+  plan.forEach((ys,x)=>{if(badX.has(x))return;ys.forEach(y=>out.set(y,x))});
+  return {map:out,gone:gone.filter(y=>!out.has(y))};
+}
+function _vendRelabelFrozen(all,pd,replaceYMs,lab){
+  const res={},stats={renamed:0,unmatched:0,pairs:[]};
+  if(!pd||!pd.vc||!all||!all.length)return {res,stats};
+  const frozenYMs=new Set();pd.vc.forEach(r=>{const ym=r.ano*100+r.mn;if(!replaceYMs.has(ym))frozenYMs.add(ym)});
+  const upYMs=new Set();for(const r of all){const ym=r.ano*100+r.mn;if(frozenYMs.has(ym))upYMs.add(ym)}
+  if(!upYMs.size)return {res,stats};
+  const rtF=new Map(),vcF=new Map(),rtU=new Map(),vcU=new Map();
+  if(typeof RAW_T!=='undefined'&&RAW_T&&RAW_T.a&&RAW_T.d){const A=RAW_T.a,Dd=RAW_T.d;
+    for(let i=0;i<A.cat.length;i++){if(Dd.cat[A.cat[i]]!==lab)continue;const ym=A.ano[i]*100+A.mn[i];if(!upYMs.has(ym))continue;
+      _vrAdd(rtF,ym,Dd.vend[A.vend[i]],Dd.m[A.m[i]]+'|'+Dd.c3[A.c3[i]]+'|'+Dd.c4[A.c4[i]]+'|'+Dd.c5[A.c5[i]]+'|'+Dd.t[A.t[i]],A.v[i],A.p[i])}}
+  pd.vc.forEach(r=>{const ym=r.ano*100+r.mn;if(upYMs.has(ym))_vrAdd(vcF,ym,r.vend,r.m+'|'+r.c3+'|'+r.c4+'|'+r.c5,r.v,r.p)});
+  for(const r of all){const ym=r.ano*100+r.mn;if(!upYMs.has(ym))continue;
+    _vrAdd(vcU,ym,r.vend,r.m+'|'+r.c3+'|'+r.c4+'|'+r.c5,r.v,r.p);
+    if(r.adTitle&&r.adTitle!=='-')_vrAdd(rtU,ym,r.vend,r.m+'|'+r.c3+'|'+r.c4+'|'+r.c5+'|'+r.adTitle,r.v,r.p)}
+  upYMs.forEach(ym=>{
+    // Com título do anúncio (2026): a conferência é feita anúncio a anúncio. Sem título (2025): por marca+categorias.
+    const useT=rtF.has(ym)&&rtU.has(ym);
+    const r=useT?_vendRelabelMatch(rtF.get(ym),rtU.get(ym)):_vendRelabelMatch(vcF.get(ym)||new Map(),vcU.get(ym)||new Map());
+    if(r.map.size){res[ym]=Object.fromEntries(r.map);stats.renamed+=r.map.size;r.map.forEach((x,y)=>stats.pairs.push([lab,ym,y,x]))}
+    stats.unmatched+=r.gone.length;
+  });
+  if(stats.renamed)console.log('[procXL:'+lab+'] vendedores renomeados em meses congelados:',stats.pairs.map(p=>p[1]+': '+p[2]+' → '+p[3]));
+  if(stats.unmatched)console.log('[procXL:'+lab+'] vendedores de meses congelados ausentes no arquivo sem correspondência exata (mantidos):',stats.unmatched);
+  return {res,stats};
+}
+function _vrName(ren,r){const m=ren&&ren[r.ano*100+r.mn];return (m&&m[r.vend])||r.vend}
+let _vrUploadLog=[];
 function _mergeRawTUpdates(updates){
   if(!updates||!Object.keys(updates).length||typeof RAW_T==='undefined'||!RAW_T||!RAW_T.a||!RAW_T.d)return;
   const oa=RAW_T.a,od=RAW_T.d;
@@ -7806,7 +7891,8 @@ function _mergeRawTUpdates(updates){
   for(let i=0;i<oa.cat.length;i++){
     const cat=od.cat[oa.cat[i]],ym=oa.ano[i]*100+oa.mn[i];
     if(rep[cat]&&rep[cat].has(ym))continue;
-    push({cat,ano:oa.ano[i],mn:oa.mn[i],vend:od.vend[oa.vend[i]],m:od.m[oa.m[i]],c3:od.c3[oa.c3[i]],c4:od.c4[oa.c4[i]],c5:od.c5[oa.c5[i]],t:od.t[oa.t[i]],v:oa.v[i],p:oa.p[i]});
+    const _rn=updates[cat]&&updates[cat].ren&&updates[cat].ren[ym];const _v0=od.vend[oa.vend[i]];
+    push({cat,ano:oa.ano[i],mn:oa.mn[i],vend:(_rn&&_rn[_v0])||_v0,m:od.m[oa.m[i]],c3:od.c3[oa.c3[i]],c4:od.c4[oa.c4[i]],c5:od.c5[oa.c5[i]],t:od.t[oa.t[i]],v:oa.v[i],p:oa.p[i]});
   }
   Object.values(updates).forEach(u=>(u.rows||[]).forEach(push));
   RAW_T.a=na;RAW_T.d=nd;
@@ -7850,6 +7936,7 @@ function _renderUploadVerify(summary){
   }catch(e){console.warn('[_renderUploadVerify]',e);}
 }
 async function procXL(wb){
+  _vrUploadLog=[];
   // Process all sheets - pair _2025 with current ones
   const mp={jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
   // Resolver de colunas tolerante: tenta nomes exatos, variações comuns, e fallback fuzzy.
@@ -8237,6 +8324,9 @@ async function procXL(wb){
     frozenSet.forEach(ym=>replaceYMs.delete(ym));
     if(_DB_LATEST_YM)Array.from(replaceYMs).forEach(ym=>{if(ym<_DB_LATEST_YM)replaceYMs.delete(ym)});
     if(_uploadYMs.some(ym=>_DB_LATEST_YM&&ym<_DB_LATEST_YM))console.log(`[procXL:${lab}] meses CONGELADOS ignorados no arquivo:`,_uploadYMs.filter(ym=>ym<_DB_LATEST_YM));
+    // Nome do vendedor nos meses congelados: lê o arquivo e atualiza só o nome (valores intactos).
+    let _vendRen={},_vendRenStats={renamed:0,unmatched:0,pairs:[]};
+    try{const _vr=_vendRelabelFrozen(all,preservedDecoded,replaceYMs,lab);_vendRen=_vr.res;_vendRenStats=_vr.stats;}catch(_e){console.warn('[vendRelabel]',lab,_e);_vendRen={};}
     const beforeCount=all.length;
     all=all.filter(r=>replaceYMs.has(r.ano*100+r.mn));
     console.log(`[procXL:${lab}] MONTH-MERGE: ${replaceYMs.size} mês(es) substituível(is) no upload · ${beforeCount.toLocaleString('pt-BR')} → ${all.length.toLocaleString('pt-BR')} linhas processadas`);
@@ -8309,8 +8399,9 @@ async function procXL(wb){
       });
       preservedDecoded.vc.forEach(r=>{
         if(!_shouldPreserve(r))return;
-        const k=`${r.ano}|${r.mn}|${r.vend}|${r.m}|${r.c3}|${r.c4}|${r.c5}`;
-        if(!vcM.has(k))vcM.set(k,{ano:r.ano,mn:r.mn,vend:r.vend,m:r.m,c3:r.c3,c4:r.c4,c5:r.c5,v:0,p:0});
+        const _vn=_vrName(_vendRen,r);
+        const k=`${r.ano}|${r.mn}|${_vn}|${r.m}|${r.c3}|${r.c4}|${r.c5}`;
+        if(!vcM.has(k))vcM.set(k,{ano:r.ano,mn:r.mn,vend:_vn,m:r.m,c3:r.c3,c4:r.c4,c5:r.c5,v:0,p:0});
         const o=vcM.get(k);o.v+=r.v;o.p+=r.p;
       });
       preservedDecoded.ia.forEach(r=>{
@@ -8323,8 +8414,9 @@ async function procXL(wb){
       preservedDecoded.iv.forEach(r=>{
         if(!_shouldPreserve(r))return;
         if(!r.t||r.t==='-')return;
-        const k=`${r.ano}|${r.mn}|${r.t}|${r.vend}`;
-        if(!ivM.has(k))ivM.set(k,{ano:r.ano,mn:r.mn,t:r.t,vend:r.vend,v:0,p:0});
+        const _vn=_vrName(_vendRen,r);
+        const k=`${r.ano}|${r.mn}|${r.t}|${_vn}`;
+        if(!ivM.has(k))ivM.set(k,{ano:r.ano,mn:r.mn,t:r.t,vend:_vn,v:0,p:0});
         const o=ivM.get(k);o.v+=r.v;o.p+=r.p;
       });
     }
@@ -8339,7 +8431,8 @@ async function procXL(wb){
     const iv=Array.from(ivM.values());
     const rtRows=Array.from(rtM.values());
     // RAW_T segue exatamente os mesmos meses substituídos da categoria, inclusive se um mês vier sem título.
-    rawTUpdates[lab]={replaceYMs:Array.from(replaceYMs),rows:rtRows};
+    rawTUpdates[lab]={replaceYMs:Array.from(replaceYMs),rows:rtRows,ren:_vendRen};
+    if(_vendRenStats&&_vendRenStats.pairs)_vrUploadLog.push(..._vendRenStats.pairs);
     const tvM=new Map();ivM.forEach(o=>{const k=`${o.t}|${o.vend}`;if(!tvM.has(k))tvM.set(k,{t:o.t,vend:o.vend,v:0});tvM.get(k).v+=o.v});
     const tvG=new Map();tvM.forEach(o=>{if(!tvG.has(o.t)||tvG.get(o.t).v<o.v)tvG.set(o.t,o)});
     const itTot=new Map();ivM.forEach(o=>{itTot.set(o.t,(itTot.get(o.t)||0)+o.v)});
@@ -8381,7 +8474,8 @@ async function procXL(wb){
     const _mnNm=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
     const _lastK=Object.keys(auditBA).sort().pop()||'';
     const _lastLbl=_lastK?(_mnNm[(+_lastK.slice(5,7))-1]+'/'+_lastK.slice(2,4)):'—';
-    markStep(step,true,`${baList.length.toLocaleString('pt-BR')} entradas, R$ ${(totalSales/1e6).toFixed(2)}M, ${elapsed}s · último mês lido: <b>${_lastLbl}</b>${preserveMsg}`);
+    const _renMsg=((_vendRenStats&&_vendRenStats.renamed)?` · <b style="color:var(--grn)">${_vendRenStats.renamed} vendedor(es) renomeado(s) no histórico</b>`:'')+((_vendRenStats&&_vendRenStats.unmatched)?` · ${_vendRenStats.unmatched} nome(s) do histórico sem correspondência exata no arquivo (mantidos como estavam)`:'');
+    markStep(step,true,`${baList.length.toLocaleString('pt-BR')} entradas, R$ ${(totalSales/1e6).toFixed(2)}M, ${elapsed}s · último mês lido: <b>${_lastLbl}</b>${preserveMsg}${_renMsg}`);
     setUploadProgress(endPct,`${lab} concluída`);
     _verify.push({lab,status:"ok",ym:(_lastK?((+_lastK.slice(0,4))*100+(+_lastK.slice(5,7))):0),entries:baList.length});
     }catch(err){
@@ -8432,6 +8526,8 @@ async function procXL(wb){
   try{for(const _k in _ovDecodeCache)delete _ovDecodeCache[_k];}catch(e){}
   RAW.category_order=newOrder;
   try{rebuildMotor(wb)}catch(e){console.warn('[procXL] rebuildMotor:',e)}
+  try{if(_vrUploadLog.length){if(!Array.isArray(RAW.vend_renames))RAW.vend_renames=[];const _d=new Date().toISOString().slice(0,10);_vrUploadLog.forEach(p=>RAW.vend_renames.push([_d].concat(p)));}}catch(_e){}
+  try{if(_vrUploadLog.length)addUploadStep(`Nome de vendedor atualizado no histórico congelado: <b>${_vrUploadLog.length}</b> correspondência(s) exata(s) · valores dos meses congelados inalterados`);}catch(_e){}
   RAW.lastUpdate=new Date().toISOString().slice(0,10);
   try{
     if(_motorLastLoad&&_motorLastLoad.found&&_motorLastLoad.ym>0)_verify.push({lab:'MOTORIZADAS',status:'ok',ym:_motorLastLoad.ym,entries:_motorLastLoad.brands,unit:'marcas'});
@@ -9791,4 +9887,40 @@ window.addEventListener('load',function(){setTimeout(function(){
   try{if(typeof _renderOvItems==='function')_renderOvItems();}catch(e){console.error('[ovItems]',e)}
 },300);});
 </script>
-<div id="fxExportShield" data-html2canvas-ignore="true" style="display: none;">Gerando PNG…</div></body></html>
+<div id="fxExportShield" data-html2canvas-ignore="true" style="display: none;">Gerando PNG…</div><script id="plcFitNames">
+// PLACAR DO MÊS: nome de marca longo diminui a fonte até caber na coluna (sem invadir coluna/linha vizinha).
+function _plcFitNames(root){
+  (root||document).querySelectorAll('.plc-row .plc-name, .plc-reading-table tbody td:first-child').forEach(function(el){
+    ['font-size','white-space','line-height','overflow-wrap'].forEach(function(k){el.style.removeProperty(k)});
+    if(!el.clientWidth)return;
+    var over=function(){return el.scrollWidth>el.clientWidth+0.5};
+    if(!over())return;
+    var set=function(f){el.style.setProperty('font-size',f+'px','important')};
+    var base=parseFloat(getComputedStyle(el).fontSize)||13,fs=base;
+    // 1) uma linha, reduzindo um pouco a fonte
+    el.style.setProperty('white-space','nowrap','important');
+    while(over()&&fs>11){fs-=0.5;set(fs)}
+    if(!over())return;
+    // 2) duas linhas dentro da mesma altura de linha, com a maior fonte possível
+    var h0=el.getBoundingClientRect().height;
+    el.style.setProperty('white-space','normal','important');el.style.setProperty('line-height','1.1','important');
+    var lines=function(){var ys=[];[].slice.call(el.childNodes).forEach(function(n){if(n.nodeType!==3||!n.textContent.trim())return;var rg=document.createRange();rg.selectNodeContents(n);[].slice.call(rg.getClientRects()).forEach(function(r){if(r.width<1)return;if(!ys.some(function(y){return Math.abs(y-r.top)<fs*0.6}))ys.push(r.top)})});return ys.length||1};
+    fs=Math.min(base,12.5);set(fs);
+    while((lines()>2||over()||el.getBoundingClientRect().height>h0+0.25)&&fs>8.5){fs-=0.5;set(fs)}
+    if(over())el.style.setProperty('overflow-wrap','anywhere','important');
+  });
+}
+(function(){
+  var pend=false;
+  var run=function(){pend=false;try{_plcFitNames(document)}catch(e){console.warn('[plcFit]',e)}};
+  var mo=new MutationObserver(function(muts){
+    if(pend)return;
+    for(var i=0;i<muts.length;i++){var a=muts[i].addedNodes;for(var j=0;j<a.length;j++){var n=a[j];
+      if(n.nodeType===1&&(n.classList.contains('plc-row')||n.classList.contains('placar-modal-bg')||n.querySelector&&n.querySelector('.plc-row,.plc-reading-table'))){pend=true;requestAnimationFrame(function(){requestAnimationFrame(run)});return}}}
+  });
+  var start=function(){mo.observe(document.body,{childList:true,subtree:true});run()};
+  if(document.body)start();else document.addEventListener('DOMContentLoaded',start);
+  window.addEventListener('resize',function(){requestAnimationFrame(run)});
+})();
+</script>
+</body></html>

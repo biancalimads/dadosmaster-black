@@ -2505,6 +2505,7 @@ body.theme-light .ovins-note{color:#5a6b82}
 @media (max-width:1000px){.ovins-cmp{font-size:11px}}
 .ovins-tile .t-vl{font-variant-numeric:normal!important}
 </style>
+<style id="pmLightFix">body.theme-light .pm-exp-lb{color:#0F3C6E!important}body.theme-light #pmExpTitle,body.theme-light .pm-exp-title{color:#0A2A4E!important}</style>
 </head>
 <body class="theme-light viewmode">
 <!-- Theme Toggle Bar -->
@@ -9181,8 +9182,9 @@ function setTheme(mode){
   const wrap=c=>{if(typeof c==='function'){if(c.__thw)return c;const f=function(){return remap(c.apply(this,arguments))};f.__thw=true;return f}return remap(c)};
   const fixDL=o=>{if(!o||typeof o!=='object')return;if('color' in o)o.color=wrap(o.color);if(o.labels&&typeof o.labels==='object')Object.values(o.labels).forEach(fixDL);};
   const fixScale=sc=>{if(!sc)return;['ticks','title'].forEach(k=>{if(sc[k]&&'color' in sc[k])sc[k].color=wrap(sc[k].color)})};
+  const _pmSkip=chart=>{try{return !!(chart&&chart.canvas&&chart.canvas.closest&&chart.canvas.closest('.pm-card'))}catch(e){return false}};
   const plugin={id:'themeLightText',beforeUpdate(chart){
-    if(!document.body.classList.contains('theme-light'))return;
+    if(!document.body.classList.contains('theme-light')||_pmSkip(chart))return;
     const o=(chart.config&&chart.config.options)||chart.options||{};
     try{fixDL(o.plugins&&o.plugins.datalabels)}catch(e){}
     try{(chart.config.data.datasets||[]).forEach(d=>fixDL(d.datalabels))}catch(e){}
@@ -9192,7 +9194,7 @@ function setTheme(mode){
   },
   beforeDraw(chart){
     // garante legenda legível no tema claro mesmo que algum gráfico tenha fixado cor clara
-    if(!document.body.classList.contains('theme-light'))return;
+    if(!document.body.classList.contains('theme-light')||_pmSkip(chart))return;
     try{const lg=chart.legend;if(lg&&lg.options&&lg.options.labels){const c=lg.options.labels.color;if(!c||remap(c)!==c||String(c).toLowerCase()==='#ffffff'||String(c).toLowerCase()==='#fff')lg.options.labels.color='#0f172a';}}catch(e){}
   }};
   const reg=()=>{try{if(typeof Chart!=='undefined'&&Chart.register){Chart.register(plugin);return true}}catch(e){}return false};
@@ -9485,12 +9487,12 @@ window.addEventListener('load',function(){
       options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:30,right:16,left:10,bottom:2}},clip:false,
         plugins:{legend:{display:false},
           tooltip:{callbacks:{label:function(c){return ' '+fmtVal(c.parsed.y,fmt);}}},
-          datalabels:{display:function(c){return c.dataset.data[c.dataIndex]!=null;},anchor:'end',align:'end',offset:4,clamp:false,clip:false,color:'#EAF2FF',
+          datalabels:{display:function(c){return c.dataset.data[c.dataIndex]!=null;},anchor:'end',align:'end',offset:4,clamp:false,clip:false,color:'#FFFFFF',
             font:function(c){return{size:fitLabel(c.dataset.data[c.dataIndex],c,fmt,(fmt==='money2'?12:13)).px,weight:'700'};},
             rotation:function(c){return fitLabel(c.dataset.data[c.dataIndex],c,fmt,(fmt==='money2'?12:13)).rot?-90:0;},
             formatter:function(v,c){return fitLabel(v,c,fmt,(fmt==='money2'?12:13)).t;}}},
-        scales:{x:{grid:{display:false},ticks:{autoSkip:false,maxRotation:60,color:'#8BB8E8',font:{size:12,weight:'600'}}},
-          y:{beginAtZero:true,grace:'16%',grid:{color:'rgba(255,255,255,.08)'},ticks:{color:'#8BB8E8',font:{size:12},
+        scales:{x:{grid:{display:false},ticks:{autoSkip:false,maxRotation:60,color:'#FFFFFF',font:{size:12,weight:'600'}}},
+          y:{beginAtZero:true,grace:'16%',grid:{color:'rgba(255,255,255,.08)'},ticks:{color:'#FFFFFF',font:{size:12},
             callback:function(v){return isMoney?(v>=1000?(v/1000)+'k':v):v;}}}}}
     });
   }
@@ -9503,7 +9505,7 @@ window.addEventListener('load',function(){
       options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:38,right:14,left:6,bottom:24}},clip:false,
         plugins:{legend:{display:false},
           tooltip:{callbacks:{label:function(c){return ' '+brTk(c.parsed.y);}}},
-          datalabels:{display:function(c){return c.dataset.data[c.dataIndex]!=null;},anchor:'end',offset:7,clamp:false,clip:false,color:'#EAF2FF',
+          datalabels:{display:function(c){return c.dataset.data[c.dataIndex]!=null;},anchor:'end',offset:7,clamp:false,clip:false,color:'#FFFFFF',
             /* se estiver apertado, alterna acima/abaixo da linha para os vizinhos não colidirem */
             /* pico → rótulo acima; vale → rótulo abaixo (os vizinhos nunca ficam do mesmo lado colados) */
             align:function(c){var d=c.dataset.data,ch=c.chart,key=d.join('|');
@@ -9519,8 +9521,8 @@ window.addEventListener('load',function(){
               return ch.$pmSides.sd[c.dataIndex];},
             font:function(c){return{size:fitLabel(c.dataset.data[c.dataIndex],c,'money2',12).px,weight:'700'};},
             formatter:function(v,c){return fitLabel(v,c,'money2',12).t;}}},
-        scales:{x:{grid:{display:false},offset:true,ticks:{autoSkip:false,maxRotation:60,color:'#8BB8E8',font:{size:12,weight:'600'}}},
-          y:{grace:'32%',grid:{color:'rgba(255,255,255,.08)'},ticks:{color:'#8BB8E8',font:{size:12},callback:function(v){return v.toLocaleString('pt-BR');}}}}}
+        scales:{x:{grid:{display:false},offset:true,ticks:{autoSkip:false,maxRotation:60,color:'#FFFFFF',font:{size:12,weight:'600'}}},
+          y:{grace:'32%',grid:{color:'rgba(255,255,255,.08)'},ticks:{color:'#FFFFFF',font:{size:12},callback:function(v){return v.toLocaleString('pt-BR');}}}}}
     });
   }
 
@@ -9537,7 +9539,7 @@ window.addEventListener('load',function(){
     // KPIs
     document.getElementById('pmKpis').innerHTML=
       '<div class="pm-kpi"><div class="k-lb">Marca</div><div class="k-vl">'+esc(k.brand||'—')+'</div></div>'
-     +'<div class="pm-kpi"><div class="k-lb">Total vendido ('+k.nM+' meses)</div><div class="k-vl">'+brMoney(k.totV)+'</div></div>'
+     +'<div class="pm-kpi"><div class="k-lb">Total vendido</div><div class="k-vl">'+brMoney(k.totV)+'</div></div>'
      +'<div class="pm-kpi"><div class="k-lb">Peças</div><div class="k-vl">'+brNum(k.totQ)+'</div></div>'
      +'<div class="pm-kpi"><div class="k-lb">Ticket médio</div><div class="k-vl">'+brTk(k.tk)+'</div></div>'
      +'<div class="pm-kpi pm-kpi-cost"><div class="k-lb">Custo estimado</div><div class="k-vl">'+brTk(k.custo)+'</div><div class="k-sub">ticket médio do ano ÷ 1,5</div></div>'

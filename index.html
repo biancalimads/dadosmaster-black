@@ -2537,6 +2537,23 @@ body.theme-light .ovins-note{color:#5a6b82}
 #pmSlide .pms-tbl table.ms-tbl td{padding:4px 6px!important;height:29px!important;max-height:29px!important;line-height:1.2!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important;font-size:11px!important}
 #pmSlide .pms-tbl table.ms-tbl th:nth-child(1){width:54px!important;min-width:0!important}#pmSlide .pms-tbl table.ms-tbl th:nth-child(2){width:auto!important;min-width:0!important}#pmSlide .pms-tbl table.ms-tbl th:nth-child(3){width:90px!important;min-width:0!important}#pmSlide .pms-tbl table.ms-tbl th:nth-child(4){width:40px!important;min-width:0!important}#pmSlide .pms-tbl table.ms-tbl th:nth-child(5){width:82px!important;min-width:0!important}
 </style>
+<style id="ovCatStyle">
+.ovcat-wrap{margin:0 0 22px;max-width:760px}
+.ovcat-h{caption-side:top;text-align:left;padding:0;font-size:12.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#cfe3ff;margin:0 0 8px}
+.ovcat-h span{font-weight:600;text-transform:none;letter-spacing:.2px;color:#8BB8E8}
+.ovcat-tbl{width:100%!important;table-layout:fixed}
+.ovcat-tbl th:nth-child(1){width:46%}.ovcat-tbl th:nth-child(2){width:30%}.ovcat-tbl th:nth-child(3){width:24%}
+.ovcat-tbl td{font-size:13.5px!important;padding:10px 16px!important;text-align:right!important;font-variant-numeric:tabular-nums}
+.ovcat-tbl td.l{text-align:left!important;font-weight:600}
+.ovcat-tbl tr.ovcat-tot td{font-weight:800!important;border-top:2px solid rgba(139,184,232,.45)!important}
+.ovcat-up{color:#4ade80;font-weight:700}.ovcat-dn{color:#ff8a98;font-weight:700}.ovcat-na{color:#8BB8E8}
+.ovcat-note{font-size:10.5px;color:#8BB8E8;margin-top:6px}
+.ovcat-empty{color:#8BB8E8;font-size:12px;font-style:italic;padding:8px 0}
+body.theme-light .ovcat-h{color:#0A2A4E}body.theme-light .ovcat-h span{color:#5a6b82}
+body.theme-light .ovcat-up{color:#15803d}body.theme-light .ovcat-dn{color:#b91c1c}body.theme-light .ovcat-na{color:#94a3b8}
+body.theme-light .ovcat-note{color:#5a6b82}
+body.theme-light .ovcat-tbl tr.ovcat-tot td{border-top-color:#94a3b8!important}
+</style>
 </head>
 <body class="theme-light viewmode">
 <!-- Theme Toggle Bar -->
@@ -2641,6 +2658,7 @@ body.theme-light .ovins-note{color:#5a6b82}
 <div id="legDes" class="chart-legend"><span class="cl-item cl-toggle" onclick="toggleDes(0)" title="Clique para ocultar Vendas 2025"><span class="cl-swatch" style="background:#60a5fa"></span>Vendas 2025</span><span class="cl-item cl-toggle" onclick="toggleDes(1)" title="Clique para ocultar Vendas 2026"><span class="cl-swatch" style="background:#2563eb"></span>Vendas 2026</span><span class="cl-item cl-toggle" onclick="toggleDes(2)" title="Clique para ocultar TM 2025"><span class="cl-line" style="background:#67e8f9"></span>TM 2025</span><span class="cl-item cl-toggle" onclick="toggleDes(3)" title="Clique para ocultar TM 2026"><span class="cl-line" style="background:#0e7490"></span>TM 2026</span><span class="cl-item cl-toggle" onclick="toggleDes(4)" title="Clique para ocultar YoY %"><span class="cl-line" style="background:#f59e0b"></span>YoY %</span><span class="cl-item cl-toggle" onclick="toggleDes(5)" title="Clique para ocultar MoM % 2026"><span class="cl-line" style="background:#EA6852"></span>MoM % 2026</span></div><button class="exp-btn" title="Exportar este card como imagem PNG em alta resolução">Exportar PNG</button></div>
 <div class="bd" style="padding:20px 22px 26px">
 <div id="ovDesKPI" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px"><div style="background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;padding:18px 22px;border-radius:8px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.7px;opacity:.85;font-weight:500">Vendas DELLAMED</div><div style="font-size:26px;font-weight:600;margin-top:6px;letter-spacing:-.5px">R$ 124.392.259,43</div></div><div style="background:linear-gradient(135deg,#0e7490,#22d3ee);color:#fff;padding:18px 22px;border-radius:8px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.7px;opacity:.85;font-weight:500">Peças Vendidas</div><div style="font-size:26px;font-weight:600;margin-top:6px;letter-spacing:-.5px">368.228</div></div><div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:#fff;padding:18px 22px;border-radius:8px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.7px;opacity:.85;font-weight:500">Ticket Médio Geral</div><div style="font-size:26px;font-weight:600;margin-top:6px;letter-spacing:-.5px">R$ 337,81</div></div></div>
+<div id="ovDesCat" class="ovcat-wrap"></div>
 <div class="cw" style="height:660px;border-radius:8px"><canvas id="ovDesChart" style="box-sizing: border-box; display: block; height: 644px; width: 2006px;" width="6019" height="1932"></canvas></div>
 </div></div>
 </div>
@@ -5037,6 +5055,7 @@ function _renderOvDesempenho(){
     kpiBox('Vendas DELLAMED',fK(totalV),'linear-gradient(135deg,'+PAL.navy.deep+','+PAL.navy.main+')')+
     kpiBox('Peças Vendidas',f0(totalP),'linear-gradient(135deg,'+PAL.teal.deep+','+PAL.teal.main+')')+
     kpiBox('Ticket Médio Geral',fK(totalTkm),'linear-gradient(135deg,'+PAL.violet.deep+','+PAL.violet.main+')');
+  try{_renderOvCatTable(yrSet,mnSet,showY25,showY26);}catch(e){console.error('[ovCat]',e)}
   if(_desChart){_desChart.destroy();_desChart=null}
   const leg=document.getElementById('legDes');
   if(!lb.length){if(leg)leg.innerHTML='';return}
@@ -10232,5 +10251,53 @@ function _ovInsAppendExtra(){
   window._renderOvInsights=_renderOvInsights;
   try{if(document.getElementById('ovInsW')&&document.getElementById('ovInsW').children.length)_renderOvInsights()}catch(e){}
 })();
+</script>
+<script id="ovCatTable">
+// OVERVIEW · Faturamento DELLAMED por categoria (mesma base e mesmos filtros de Ano/Mês do card Desempenho;
+// COLCHÕES fica de fora porque já está dentro de Equipamento Médico, igual ao card).
+const OVCAT_NAMES={'MOBILIDADE':'Mobilidade','EQUIPAMENTO MÉDICO':'Equipamento Médico','CUIDADOS PARA SAÚDE':'Cuidados para Saúde','MASSAGEM':'Massagem','ORTOPEDIA':'Ortopedia','FITNESS':'Esporte e Fitness','BEBÊS':'Bebês'};
+function _ovCatMoney(v){const a=Math.abs(v);if(a>=1e6)return 'R$ '+(v/1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' mi';return 'R$ '+Math.round(v/1e3).toLocaleString('pt-BR')+' mil';}
+function _ovCatMonths(ms,yr){
+  const l=m=>MN[m-1].toLowerCase();const ys='/'+String(yr).slice(2);
+  if(!ms.length)return '—';if(ms.length===1)return l(ms[0])+ys;
+  const runs=[];let st=ms[0],pv=ms[0];
+  for(let i=1;i<=ms.length;i++){const m=ms[i];if(m===pv+1){pv=m;continue}runs.push(st===pv?l(st):(pv===st+1?l(st)+', '+l(pv):l(st)+'–'+l(pv)));st=m;pv=m;}
+  return runs.join(', ')+ys;
+}
+function _renderOvCatTable(yrSet,mnSet,showY25,showY26){
+  const W=document.getElementById('ovDesCat');if(!W||typeof RAW==='undefined')return;
+  const yr=showY26?2026:(showY25?2025:2026),py=yr-1;
+  const cur={},prv={},have=new Set();
+  RAW.category_order.forEach(cat=>{
+    if(cat==='COLCHÕES')return;
+    _ovDecode(cat).ba.forEach(r=>{
+      if(r.m!=='DELLAMED')return;
+      if(r.ano===yr&&r.v>0)have.add(r.mn);
+    });
+  });
+  let months=mnSet&&mnSet.size?[...mnSet].map(Number).filter(m=>have.has(m)):[...have];
+  months.sort((a,b)=>a-b);
+  const mset=new Set(months);
+  RAW.category_order.forEach(cat=>{
+    if(cat==='COLCHÕES')return;
+    _ovDecode(cat).ba.forEach(r=>{
+      if(r.m!=='DELLAMED'||!mset.has(r.mn))return;
+      if(r.ano===yr)cur[cat]=(cur[cat]||0)+r.v;
+      else if(r.ano===py)prv[cat]=(prv[cat]||0)+r.v;
+    });
+  });
+  const rows=Object.keys(OVCAT_NAMES).map(c=>({c,n:OVCAT_NAMES[c],a:cur[c]||0,b:prv[c]||0})).filter(o=>o.a||o.b).sort((x,y)=>y.a-x.a);
+  const tA=rows.reduce((s,o)=>s+o.a,0),tB=rows.reduce((s,o)=>s+o.b,0);
+  const yoy=(a,b)=>b?a/b-1:null;
+  const fy=v=>v==null?'<span class="ovcat-na">—</span>':'<span class="'+(v>=0?'ovcat-up':'ovcat-dn')+'">'+(v>=0?'+':'')+(v*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%</span>';
+  const per=_ovCatMonths(months,yr);
+  const cap='<caption class="ovcat-h">Faturamento por categoria <span>('+per+')</span></caption>';
+  if(!rows.length){W.innerHTML='<div class="ovcat-h">Faturamento por categoria <span>('+per+')</span></div><div class="ovcat-empty">Sem vendas DELLAMED no período selecionado.</div>';return;}
+  let h='<table class="ms-tbl ovcat-tbl">'+cap+'<thead><tr><th>Categoria</th><th>Receita</th><th>YoY</th></tr></thead><tbody>';
+  rows.forEach(o=>{h+='<tr><td class="l">'+o.n+'</td><td>'+_ovCatMoney(o.a)+'</td><td>'+fy(yoy(o.a,o.b))+'</td></tr>';});
+  h+='<tr class="ovcat-tot"><td class="l">Total</td><td>'+_ovCatMoney(tA)+'</td><td>'+fy(yoy(tA,tB))+'</td></tr>';
+  h+='</tbody></table><div class="ovcat-note tbl-export-sublegend">Receita DELLAMED no período · YoY = mesmos meses de '+py+' · Colchões estão dentro de Equipamento Médico (mesma base do card).</div>';
+  W.innerHTML=h;
+}
 </script>
 </body></html>

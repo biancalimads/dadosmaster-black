@@ -9331,7 +9331,7 @@ window.addEventListener('load',function(){
     var styleFor=(typeof msCol==='function')?msCol:function(){return ''};
     var allVals=[]; brands.forEach(function(b){b.shares.forEach(function(s){allVals.push(s)})});
     var h='<div id="eqmedResetChip" onclick="resetEqmedCols()" style="display:none"><span>0 colunas ocultas</span> · clique para restaurar</div><div class="ms-tbl-wrap"><div class="ms-export-area"><table class="ms-tbl"><thead><tr>';
-    h+='<th style="text-align:left" data-col="0">Marca</th>';
+    h+='<th style="text-align:left" data-col="0">Subcategoria</th>';
     var _eci=1;
     periods.forEach(function(p){h+='<th class="hideable" data-col="'+_eci+'" onclick="hideEqmedCol('+_eci+')" title="Clique para ocultar esta coluna"><div class="th-inner"><span class="th-lbl">'+eqEsc(p)+'</span></div></th>';_eci++;});
     var yrs=D.years||[]; var iy25=[],iy26=[]; yrs.forEach(function(y,i){if(y&&y>=2026)iy26.push(i);else iy25.push(i);});
@@ -9352,7 +9352,7 @@ window.addEventListener('load',function(){
       else h+='<td class="msc msc-delta" data-col="'+_bci+'">—</td>';
       h+='</tr>';
     });
-    h+='</tbody></table><div class="ms-mean-note"><strong>Média Mercado</strong> = média das participações da marca nos períodos carregados. <strong>Δ</strong> = variação do primeiro para o último período, em pontos percentuais. Cada coluna é normalizada para 100%.</div></div></div>';
+    h+='</tbody></table><div class="ms-mean-note"><strong>Média Mercado</strong> = média das participações da subcategoria nos períodos carregados. <strong>Δ</strong> = variação do primeiro para o último período, em pontos percentuais. Cada coluna é normalizada para 100%.</div></div></div>';
     document.getElementById('eqmedMsW').innerHTML=h;
     applyEqmedHide();
     // gráfico 100% empilhado

@@ -3518,6 +3518,7 @@ function _yrsFrom(min){const s=new Set();if(typeof RAW_T!=='undefined'&&RAW_T&&R
 function _miCatRows(cat,fl){
   // Fonte de marcas: exatamente o mesmo recorte atual de MAIORES MARCAS (DB.ba).
   // Fonte do anúncio: RAW_T, que representa a coluna "Título do anúncio" do MASTER.
+  _miCatRows.per=null;
   if(typeof RAW_T==='undefined'||!RAW_T||!DB||!DB.ba)return[];
   const base=fB(DB.ba,fl);
   if(!base.length)return[];
@@ -3528,6 +3529,9 @@ function _miCatRows(cat,fl){
   const curMonths=(fl&&fl.mes&&fl.mes.length)
     ? fl.mes.map(Number)
     : [...new Set(base.filter(r=>r.ano===curYear).map(r=>r.mn))].sort((a,b)=>a-b);
+  // período efetivamente exibido no card (ano mais recente do filtro × meses com dados) — vai no subtítulo
+  {const _pm=[...new Set(base.filter(r=>r.ano===curYear&&curMonths.includes(r.mn)).map(r=>r.mn))].sort((a,b)=>a-b);
+   _miCatRows.per={ano:curYear,mns:_pm.length?_pm:curMonths.slice()};}
 
   // TOP 10 oficial por faturamento, respeitando todos os filtros do dashboard.
   const flNoTime={...fl,ano:[],mes:[]};
@@ -3599,12 +3603,23 @@ function _initMiCatCard(){
     return card;
   }catch(e){console.warn('[miCat] init:',e);return null}
 }
+function _miPerLbl(pr){
+  if(!pr||pr.ano==null)return '';
+  const y=pr.ano,ms=[...new Set((pr.mns||[]).map(Number))].filter(m=>m>=1&&m<=12).sort((a,b)=>a-b);
+  if(!ms.length)return String(y);
+  const L=m=>MN[m-1]+'/'+y;
+  if(ms.length===1)return L(ms[0]);
+  if(ms.every((m,i)=>i===0||m===ms[i-1]+1))return L(ms[0])+' → '+L(ms[ms.length-1])+' ('+ms.length+' meses)';
+  return ms.slice(0,-1).map(m=>MN[m-1]).join(', ')+' e '+L(ms[ms.length-1])+' ('+ms.length+' meses)';
+}
 function rMarcaItemCat(fl){
   const card=document.getElementById('miCatCard')||_initMiCatCard();
   if(!card)return;
   const w=document.getElementById('miCatW'); if(!w)return;
   if(!curCat){card.style.display='none';return}
   const all=_miCatRows(curCat,fl);
+  {const sub=document.getElementById('csMiCat');const pl=_miPerLbl(_miCatRows.per);
+   if(sub)sub.textContent='Título do anúncio mais vendido de cada marca do TOP 10'+(pl?' · Período: '+pl:'')+' — vendas, peças, ticket médio, share e foto';}
   const CAP=10, rows=all.slice(0,CAP);
   let html='';
   if(!rows.length){
